@@ -482,3 +482,7 @@ ggplot()+
 - What do you think about the similarities and differences within the neighborhood? How can you probe at those using these data?
 
 - Can you think of any other ways to subdivide the data we looked at in class to glean more insights about Mt. Airy?
+
+# Assignment
+
+- Check the class canvas page to see how this particular markdown needs to be edited to form your first assignment. If there is time in class, begin the assignment!
