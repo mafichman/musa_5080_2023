@@ -1,7 +1,7 @@
 ---
 title: "Lab 2: Why Start With Indicators?"
 author: "Matt Harris & Michael Fichman"
-date: '2022-08-22'
+date: '2023-09-08'
 output: html_document
 editor_options: 
   markdown: 
@@ -268,14 +268,19 @@ allTracts <- rbind(tracts16,tracts20)
 
 ### Wrangling Transit Open Data
 
+Let's bring in Philadelphia's two main subway lines as spatial data and then `rbind` them together into one object, where each row is a stop, and the columns represent the line and the name of the stop. So we select only the `Station` and `Line` information (see how we do this in the rbind!), and then `st_transform` the whole thing to be the same crs as `tracts16`
+
 ```{r}
+
+el <- st_read("https://opendata.arcgis.com/datasets/8c6e2575c8ad46eb887e6bb35825e1a6_0.geojson")
+Broad_St <- st_read("https://opendata.arcgis.com/datasets/2e9037fd5bef406488ffe5bb67d21312_0.geojson")
 
 septaStops <- 
   rbind(
-    st_read("https://opendata.arcgis.com/datasets/8c6e2575c8ad46eb887e6bb35825e1a6_0.geojson") %>% 
+     el %>% 
       mutate(Line = "El") %>%
       dplyr::select(Station, Line),
-    st_read("https://opendata.arcgis.com/datasets/2e9037fd5bef406488ffe5bb67d21312_0.geojson") %>%
+     Broad_St %>%
       mutate(Line ="Broad_St") %>%
       dplyr::select(Station, Line)) %>%
   st_transform(st_crs(tracts16))  
@@ -303,18 +308,22 @@ Create buffers (in feet - note the CRS) around Septa stops - Both a
 buffer for each stop, and a union of the buffers... and bind these
 objects together
 
-Let's do this in pieces to understand this hefty code chunk
+Let's do this in pieces to understand this hefty code chunk.
 
 We put them in the same data frame... why?
 
 ```{r}
 
+stopBuffer <- st_buffer(septaStops, 2640)
+
+stopUnion <- st_union(st_buffer(septaStops, 2640))
+
 septaBuffers <- 
   rbind(
-    st_buffer(septaStops, 2640) %>%
+     stopBuffer %>%
       mutate(Legend = "Buffer") %>%
       dplyr::select(Legend),
-    st_union(st_buffer(septaStops, 2640)) %>%
+     stopUnion %>%
       st_sf() %>%
       mutate(Legend = "Unioned Buffer"))
 ```
@@ -405,12 +414,7 @@ outcome.
     in the previous section. This approach is just as fast as approach
     #1, but a little easier to read.
 
-3.  `selection3` takes a different approach and uses `st_join()` with
-    the join type of "st_intersects". In this approach we need to follow
-    the join with `filter(!is.na(Legend))` to remove the rows of
-    `tracts16` where the polygons did not join. These are the polygons
-    that did not intersect. This approach is the most readable and
-    easiest to understand, but can be slower on large amounts of data.
+3.  `selection3` takes a different approach and uses `st_join()` with the join type of "st_intersects". In this approach we need to follow the join with `filter(!is.na(Legend))` to remove the rows of `tracts16` where the polygons did not join. These are the polygons that did not intersect. This approach is the most readable and easiest to understand, but can be slower on large amounts of data.
 
 ```{r spatialSelection}
 
@@ -437,28 +441,19 @@ selection3 <- tracts16 %>%
 
 #### Spatial intersection with with `st_centroid()` on polygon centroids
 
-Finally, we are using centroids, or the point at the center of a
-polygon, to select whether a polygon from `tracts16` intersects the
-`buffer`. The steps here are:
+Finally, we are using centroids, or the point at the center of a polygon, to select whether a polygon from `tracts16` intersects the `buffer`. The steps here are:
 
-1.  convert tract polygons to centroids and to the spatial intersect to
-    buffers using the `selection1` approach from above. The resulting
-    geometry type is now a point and not a polygon
+1.  convert tract polygons to centroids and to the spatial intersect to buffers using the `selection1` approach from above. The resulting geometry type is now a point and not a polygon
 
-2.  drop the geometry so that is becomes a regular non-spatial data
-    frame
+2.  drop the geometry so that is becomes a regular non-spatial data frame
 
-3.  join the original `tracts16` data frame using the `GEOID` as the
-    join field. Note that only the `GEOID` column is selected, however
-    the polygon spatial features are also joined.
+3.  join the original `tracts16` data frame using the `GEOID` as the join field. Note that only the `GEOID` column is selected, however the polygon spatial features are also joined.
 
 4.  `st_sf()` is a function to turn it back to an {sf} spatial object
 
-5.  finally the `TotalPop` column is selected and a new field of
-    `Selection_Type` is added
+5.  finally the `TotalPop` column is selected and a new field of `Selection_Type` is added
 
-Note: you will get a warning about "st_centroid assumes attributes..."
-don't worry about it.
+Note: you will get a warning about "st_centroid assumes attributes... don't worry about it.
 
 ```{r}
 selectCentroids <-
@@ -485,8 +480,7 @@ ggplot() +
 
 ## Bonus Exercise - Can you create a small multiple map of the three types of operations? (NOT GRADED)
 
-Consult the text for some operations you can try This is to be done in
-breakout groups
+Consult the text for some operations you can try. This is to be done in breakout groups
 
 ### Indicator Maps
 
@@ -606,6 +600,8 @@ allTracts.threeMarkets <-
 ```
 
 ### Example of using `multipleRingBuffer()` function
+
+There is a more comprehensive tutorial on the usage of this function (and the bugs you might encounter) in the Github folder!
 
 ```{r}
 allTracts <- rbind(tracts20,tracts16)
