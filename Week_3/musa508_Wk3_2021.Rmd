@@ -57,7 +57,7 @@ census_api_key("YOUR API KEY", overwrite = TRUE)
 
 # Load the data
 
-First step is to clone the repo for the lab 3 data (using github desktop) so we have the data.
+You can clone the Github repo for the book (not the lab repo) lab 3 data (using github desktop) to get the data. You can also load from a URL, as we do below.
 
 You can clone the repo using the "file" tab in Github Desktop and using [this URL:](https://github.com/urbanSpatial/Public-Policy-Analytics-Landing)
 
