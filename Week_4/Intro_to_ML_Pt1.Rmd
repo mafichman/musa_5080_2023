@@ -54,7 +54,7 @@ See if you can change the chunk options to get rid of the text outputs
 ```{r read_data}
 
 nhoods <- 
-  st_read("http://bostonopendata-boston.opendata.arcgis.com/datasets/3525b0ee6e6b427f9aab5d0a1d0a1a28_0.geojson") %>%
+  st_read("~/GitHub/musa_5080_2023/Week_4/neighborhoods/bost_nhoods.geojson") %>%
   st_transform('ESRI:102286')
 
 boston <- 
@@ -103,6 +103,11 @@ ggplot() +
 ```
 
 ### Cleaning Crime Data
+
+Let's filter for only a particular type of offense, Aggravated Assault.
+
+We turn it from data frame into sf using `st_as_sf` and then keep only distinct observations.
+
 Why are we using a filter for `Lat > -1`?
 
 ```{r clean_crime}
@@ -368,13 +373,12 @@ plot_summs(reg1, livingReg)
 ```
 
 Challenges:
-What is the Coefficient of LivingArea when Average Distance to 2-nearest crimes are considered?
-## Build a regression with LivingArea and crime_nn2
-## report regression coefficient for LivingArea
-## Is it different? Why?
 
-## Try to engineer a 'fixed effect' out of the other variables in an attempt to parameterize a variable that suggests a big or fancy house or levels of fanciness.
-## How does this affect your model?
+-What is the Coefficient of LivingArea when Average Distance to 2-nearest crimes are considered?
+
+-Build a regression with LivingArea and crime_nn2? Report the regression coefficient for LivingArea. Is it different than it was before? Why?
+
+- Try to engineer a 'fixed effect' out of the other variables in an attempt to parameterize a variable that suggests a big or fancy house or levels of fanciness. How does this affect your model?
 
 ```{r}
 
