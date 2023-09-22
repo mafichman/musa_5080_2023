@@ -54,7 +54,7 @@ See if you can change the chunk options to get rid of the text outputs
 ```{r read_data}
 
 nhoods <- 
-  st_read("~/GitHub/musa_5080_2023/Week_4/neighborhoods/bost_nhoods.geojson") %>%
+  st_read("https://raw.githubusercontent.com/mafichman/musa_5080_2023/main/Week_4/neighborhoods/bost_nhoods.geojson") %>%
   st_transform('ESRI:102286')
 
 boston <- 
