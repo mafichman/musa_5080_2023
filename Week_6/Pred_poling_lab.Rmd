@@ -1,7 +1,7 @@
 ---
 title: 'ML #3 Predictive Policing'
 author: "Prof. Fichman & Prof. Harris"
-date: "10/14/2022"
+date: "9/29/2023"
 output: html_document
 ---
 
@@ -18,6 +18,12 @@ Our learning goals for today are:
 4. Compare model performance to Kernal Density as a "business-as-usual" alternative
 
 **Note that this code is different than the book - it has been updated and debugged to keep up with changes in packages and data sources used in this exercise. Please use this code as the basis for your homework, not the book code.**
+
+NOTE - 9/29/2023
+
+If you are having issues using `RSocrata` - it is not on CRAN at the moment - you can use the following to work around that and install it - install `devtools`, and then use the following code to install `RSocrata` straight from github - `devtools::install_github("Chicago/RSocrata")`.
+
+You can learn more about the status of RSocrata package here - https://github.com/Chicago/RSocrata
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)

@@ -82,7 +82,7 @@ reg.training <-
                              dplyr::select(SalePrice, LivingArea, Style, 
                                            GROSS_AREA, NUM_FLOORS.cat,
                                            R_BDRMS, R_FULL_BTH, R_HALF_BTH, 
-                                           R_KITCH, R_AC, R_FPLACE, crimes.Buffer))
+                                           R_KITCH, R_AC, R_FPLACE, crimes.Buffer, Name))
 
 boston.test <-
   boston.test %>%
@@ -90,8 +90,51 @@ boston.test <-
          SalePrice.Predict = predict(reg.training, boston.test),
          SalePrice.Error = SalePrice.Predict - SalePrice,
          SalePrice.AbsError = abs(SalePrice.Predict - SalePrice),
-         SalePrice.APE = (abs(SalePrice.Predict - SalePrice)) / SalePrice.Predict)%>%
+         SalePrice.APE = (abs(SalePrice.Predict - SalePrice)) / SalePrice.Predict) %>%
   filter(SalePrice < 5000000) 
+
+```
+
+What is the MAE?
+
+```{r}
+mean(boston.test$SalePrice.AbsError, na.rm = T)
+
+```
+
+How about the MAPE?
+
+```{r}
+mean(boston.test$SalePrice.APE, na.rm = T)
+
+```
+
+## Cross-Validation
+
+To set up an iteration of random 'folds' (in this case 100), we use our very same regression formula to train a different regression object `reg.cv` that is subjected to the cross-validation process for the whole data set.
+
+If you get warnings about a "rank deficient" matrix - you might have too many predictors for the number of observations.
+
+```{r}
+fitControl <- trainControl(method = "cv", number = 100)
+set.seed(825)
+
+reg.cv <- 
+  train(SalePrice ~ ., data = st_drop_geometry(boston.sf) %>% 
+                                dplyr::select(SalePrice, 
+                                LivingArea, Style, GROSS_AREA, 
+                                NUM_FLOORS.cat, R_BDRMS, R_FULL_BTH, 
+                                R_HALF_BTH, R_KITCH, R_AC, 
+                                R_FPLACE, crimes.Buffer), 
+     method = "lm", trControl = fitControl, na.action = na.pass)
+
+reg.cv
+
+```
+`reg.cv` is an object that contains a data frame called `resample` with your folds and errors associated with them. You will use this to make a plot of your errors for the CV process.
+
+```{r}
+reg.cv$resample[1:5,]
 
 ```
 
