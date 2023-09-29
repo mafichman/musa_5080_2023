@@ -31,6 +31,18 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 palette5 <- c("#25CB10", "#5AB60C", "#8FA108",   "#C48C04", "#FA7800")
 ```
 
+## Learning objectives
+
+- Build a training and testing environment to validate a regression model
+
+- Examine Errors to understand if they are non-random, in order to diagnose model quality
+
+- Create and examine validation metrics including MAE and MAPE
+
+- Use Moran's I to see if errors are spatially non-random
+
+- Examine generalizability across geographic contexts
+
 ## Data Loading
 
 Bring in a wrangled data set - it has some new variables already created.
@@ -172,7 +184,7 @@ boston.test.nhood <-
 
 ```
 
-How do these models compare? We can bond our error info together and then examine!
+How do these models compare? We can bind our error info together and then examine!
 
 ```{r}
 bothRegressions <- 
