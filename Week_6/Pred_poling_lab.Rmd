@@ -15,15 +15,17 @@ Our learning goals for today are:
 
 3. Run a poisson regression to predict events measured in counts
 
-4. Compare model performance to Kernal Density as a "business-as-usual" alternative
+4. Compare model performance to Kernel Density as a "business-as-usual" alternative
 
 **Note that this code is different than the book - it has been updated and debugged to keep up with changes in packages and data sources used in this exercise. Please use this code as the basis for your homework, not the book code.**
 
-NOTE - 9/29/2023
+NOTES - 9/29/2023
 
 If you are having issues using `RSocrata` - it is not on CRAN at the moment - you can use the following to work around that and install it - install `devtools`, and then use the following code to install `RSocrata` straight from github - `devtools::install_github("Chicago/RSocrata")`.
 
 You can learn more about the status of RSocrata package here - https://github.com/Chicago/RSocrata
+
+`spatstat` has been retired from CRAN and doesn't work with R builds 4.3 of higher - use `spatstat.explore` instead.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
@@ -32,7 +34,7 @@ library(tidyverse)
 library(sf)
 library(RSocrata)
 library(viridis)
-library(spatstat)
+library(spatstat.explore)
 library(raster)
 library(spdep)
 library(FNN)
@@ -161,6 +163,7 @@ ggplot() +
 # xx + yy
 ```
 
+
 ## Modeling Spatial Features
 
 > What features would be helpful in predicting the location of burglaries?
@@ -188,24 +191,32 @@ neighborhoods <-
 
 ```
 
-#### How we aggregate a feature to our fishnet
+### How we aggregate a feature to our fishnet
 
 This is an important chunk of code with some unfamiliar lines. The overall to assign the fishnet ID to each abandoned car point, group the points by fishnet ID and count them per ID, join that count back to the fishnet and then go from a long format to a wide format. We'll step through it:
 
 *   `st_join(fishnet, join=st_within)`
+
 *       spatially join `abandonCars` points to the `fishnet` polygon they are within by specifying `st_within`. This results in the `Abandoned_Cars` points being given the `uniqueID` of the fishnet grid cell that they are within.
+
 *   `st_drop_geometry()`
 *       drop the geometry attributes of the joined data so that we can do summaries on it without having to also calculate geometries which would be quite slow.
+
 *   `group_by(uniqueID, Legend)`
 *       we want to count the number of abandoned cars per fishnet, so we use `group_by` on the unique cell ID. We also include the `Legend` column, which is more useful if you are doing this one more than a single layer.
+
 *   `summarize(count = n())`
 *       use `summarize` to create a new field called `count` that will be the count of all abandoned cars per fishnet grid cell. The `n()` function returns the number within each group (i.e. `uniqueID`)
+
 *   `left_join(fishnet, ., by = "uniqueID")`
 *       join that summary back to spatial fishnet by the `uniqueID` field which is in both. Note the use of the `.` "dot operator" which is a stand in for the object being piped into the function (i.e. `left_join()`). We use this because we want the summaries to be the second argument of the join; not the first argument which is the dplyr default.
+
 *   `spread(Legend, count, fill=0)`
 *       "spread" from long to wide format and make a new column for each value of the `Legend` field. This also is more useful if there are multiple layers in the `Legend` column. Note the use of `fill=0` tells the function to fill in any fishnet cells without an abandoned car with a `0` instead of `NA`.
+
 *   `dplyr::select(-``<NA>``)`
 *       remove a `<NA>` column that was created because of the `NA` value in the `Legend` column when it was "spread"
+
 *   `ungroup()`
 *       Finally, ungroup the dataframe.
 
@@ -381,9 +392,17 @@ ggplot() +
 
 ## Modeling and CV
 
+OK - this is a tricky bit.
+
+Our model is actually made inside this custom function from the book called `crossValidate` that is designed to work with spatial data. 
+
+What it does is take a `dataset`, a dependent variable `dependentVariable`, a list of independent variables `indVariables` (we feed it a list called `reg.ss.vars` here) an `id` - which is a cross validation category. It both runs a poisson model AND does a cross-validation process where it trains and tests the model on geographic holdout sets. It returns an sf object, in this case called `reg.ss.spatialCV`. 
+
+If you want to see how it works, run the code `View(crossValidate)` to see the code behind the function.
+
 Leave One Group Out CV on spatial features
 
-```{r sults='hide'}
+```{r results='hide'}
 
 # View(crossValidate)
 
@@ -398,6 +417,8 @@ reg.ss.spatialCV <- crossValidate(
   indVariables = reg.ss.vars) %>%
     dplyr::select(cvID = name, countBurglaries, Prediction, geometry)
 ```
+
+### Calculating Errors across space
 
 ```{r}
 # calculate errors by NEIGHBORHOOD
@@ -425,16 +446,16 @@ error_by_reg_and_fold %>%
 
 ## Density vs predictions
 
-The `spatstat` function gets us kernal density estimates with varying search radii.
+The `spatstat.explore` package's `density.ppp` function gets us kernel density estimates with varying search radii. We can use these to compare accuracy with our predictions - we can join them to our `final_net` and them compare estimates.
 
 Note that the code here is *different* than in the book - it has been updated to keep up with changes in packages.
 
 ```{r}
 # demo of kernel width
 burg_ppp <- as.ppp(st_coordinates(burglaries), W = st_bbox(final_net))
-burg_KD.1000 <- spatstat.core::density.ppp(burg_ppp, 1000)
-burg_KD.1500 <- spatstat.core::density.ppp(burg_ppp, 1500)
-burg_KD.2000 <- spatstat.core::density.ppp(burg_ppp, 2000)
+burg_KD.1000 <- spatstat.explore::density.ppp(burg_ppp, 1000)
+burg_KD.1500 <- spatstat.explore::density.ppp(burg_ppp, 1500)
+burg_KD.2000 <- spatstat.explore::density.ppp(burg_ppp, 2000)
 burg_KD.df <- rbind(
   mutate(data.frame(rasterToPoints(mask(raster(burg_KD.1000), as(neighborhoods, 'Spatial')))), Legend = "1000 Ft."),
   mutate(data.frame(rasterToPoints(mask(raster(burg_KD.1500), as(neighborhoods, 'Spatial')))), Legend = "1500 Ft."),
