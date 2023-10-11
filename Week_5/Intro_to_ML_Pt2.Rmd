@@ -90,7 +90,7 @@ boston.test <-
          SalePrice.Predict = predict(reg.training, boston.test),
          SalePrice.Error = SalePrice.Predict - SalePrice,
          SalePrice.AbsError = abs(SalePrice.Predict - SalePrice),
-         SalePrice.APE = (abs(SalePrice.Predict - SalePrice)) / SalePrice.Predict) %>%
+         SalePrice.APE = (abs(SalePrice.Predict - SalePrice)) / SalePrice) %>%
   filter(SalePrice < 5000000) 
 
 ```
