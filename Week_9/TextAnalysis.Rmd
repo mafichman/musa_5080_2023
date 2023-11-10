@@ -58,13 +58,15 @@ Which cluster solution would you choose?
 data_scaled<- scale(cltdata[2:10])
 distance <- get_dist(data_scaled)
 fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07")) ##Not all that useful, but gives a sense of what we are going to try to cluster in the next steps.
+
 set.seed(123)
 k2 <- kmeans(data_scaled, centers = 2, nstart = 25)
 k3 <- kmeans(data_scaled, centers = 3, nstart = 25)
 k4 <- kmeans(data_scaled, centers = 4, nstart = 25)
 k5 <- kmeans(data_scaled, centers = 5, nstart = 25)
+k10 <- kmeans(data_scaled, centers = 10, nstart = 25)
 
-
+## Uses prcomp to visualize better split.
 p1 <- fviz_cluster(k2, geom = "point", data = data_scaled) + ggtitle("k = 2")
 p2 <- fviz_cluster(k3, geom = "point",  data = data_scaled) + ggtitle("k = 3")
 p3 <- fviz_cluster(k4, geom = "point",  data = data_scaled) + ggtitle("k = 4")
@@ -72,8 +74,35 @@ p4 <- fviz_cluster(k5, geom = "point",  data = data_scaled) + ggtitle("k = 5")
 
 grid.arrange(p1, p2, p3, p4, nrow = 2)
 
+x2 <- data.frame(data_scaled) %>%
+  mutate(class = fitted(k2,"classes")) 
+ggplot(x2, aes(x = Black18, y = White18, color = factor(class))) +
+  geom_point() +
+  theme_bw()
+ggplot(x2, aes(x = med_income2018, y = chhisp, color = factor(class))) +
+  geom_point() + 
+  theme_bw()
+
+x4 <- data.frame(data_scaled) %>%
+  mutate(class = fitted(k4,"classes")) 
+ggplot(x4, aes(x = Black18, y = White18, color = factor(class))) +
+  geom_point() +
+  theme_bw()
+ggplot(x4, aes(x = med_income2018, y = chhisp, color = factor(class))) +
+  geom_point() + 
+  theme_bw()
+
+print(paste0("k2: ",  round(k2$betweenss/k2$totss,2),"%"))
+print(paste0("k3: ",  round(k3$betweenss/k3$totss,2),"%"))
+print(paste0("k4: ",  round(k4$betweenss/k4$totss,2),"%"))
+print(paste0("k5: ",  round(k5$betweenss/k5$totss,2),"%"))
+print(paste0("k10: ",  round(k10$betweenss/k10$totss,2),"%"))
 
 ```
+
+### Interpreting clusters
+
+# GROUP WORK
 
 Now we will examine the characteristics of the 4 cluster solution and try to get a sense of the neighborhood 'types' we've created. With your partner, take 5 minutes to study the characteristics and come up with names for these different types of neighborhoods.
 
@@ -88,7 +117,29 @@ kable(x=cltclusters)%>%kable_classic()
 
 ```
 
+
+```{r}
+cent5 <- k5$centers |> data.frame() |> 
+  rownames_to_column(var = "cluster")
+
+ggplot(cent5, aes(Black18 ,White18, color = cluster, label = cluster)) +
+  geom_point() +
+  geom_label() +
+  theme_bw()
+
+ggplot(cent5, aes(chincome ,med_income2018, color = cluster, label = cluster)) +
+  geom_point() +
+  geom_label() +
+  theme_bw()
+
+distancek5 <- get_dist(select(cent5,-cluster))
+fviz_dist(distancek5) ##Not all that useful, but gives a sense of what we are going to try to cluster in the next steps
+
+```
+
 The last step is to join the cluster assignments back to the shapefile so we can map it and link it to the real estate listing data.
+
+## Can we test the spatial process (clustering, dispersion)??
 
 ```{r Map Cluster Assignment}
 cltdata <- cltdata %>%
@@ -108,13 +159,19 @@ zillow<- st_read('zillow.shp') %>% st_transform(., crs = st_crs(joined)) %>% st_
 Scrub a dub dub. It is time to clean the text. In reality, we did a lot more cleaning than this and came up with some more efficient ways of doing things, but this just gives you a sense of the times of editing you might need to do when working on a project like this.
 First, because the simplest type of text analysis treats each word as its own variable, independent of what words come before and after (bag of words model), we put together some interesting co-occurring that we want treated as a single observation. Other ways to figure this out would be to model bi-grams (frequently co-occurring words). Even fancier would be to use something called word embeddings which learns about the context of certain words.
 
+## Discuss bag of words, bi-grams and embeddings
+
 Next, we get rid of punctuation.
+
+## what is wrong with punctuation?
 
 The next long section replaces specific neighborhood names with a generic 'neighborhoodname' placeholder. This is the clunky way we did it initially, constructing the list as we went. Later, this entire cleaning process became much more streamlined. I included a masterclean script that we now use to see a more efficient way of doing these things. Nonetheless, we still had to hire a research assistant to create the csv files with all possible neighborhood names (and other terms)
 
 Then we create a list of terms we want to remove. In this case, they are things that are not particularly discriminating and commonly occur in most listings. They are also quirks we observed during this iterative process - the real list ended up being quite long! In later projects, we built csv files with lists of words and used those rather than this long list!
 
 Finally, we tokenize the words so that each becomes its own observation, remove common stopwords ("the", "and", etc.), numbers, along with the words from our remove word list.
+
+## Discuss tokens and Stop words
 
 Lastly, we excluded terms that occured fewer than 5 times to try to get rid of noise.
 
@@ -125,6 +182,8 @@ Lastly, we excluded terms that occured fewer than 5 times to try to get rid of n
 zillow$USER_descr <- trimws(zillow$USER_descr)
 zillow$USER_descr <- tolower(zillow$USER_descr)
 
+### SOMETHING WRONG HERE???
+# doesn't remove, just separates
 ##remove punctuation
 zillow$USER_descr<-gsub("(\\.+|[[:punct:]])", " \\1 ", zillow$USER_descr)
 
@@ -225,7 +284,14 @@ zillow$USER_descr =gsub (pattern = "smallwood", replacement = "neighborhoodname"
 
 remove_list <- (c("Condo", "CONDO", "Townhouse", "Townhome","Duplex", "Vacant Lot", "DUPLEX", "TOWNHOME", "TOWNHOUSE", "VACANT LOT", "condo", "townhouse", "townhome", "vacant lot", "duplex", "acres lot","is a single family home that contains", "rent", "#NAME?", "is a single family home. This home last sold for", "unit", "flat", "loft", "is a single family home. It contains", "lots","new","home","kitchen","great","throughout","master","bedroom","bathroom","bath","dining","living", "bedrooms","bathrooms","home","floor","floors","sq","sold","nc","ft","dr","built","location","features","lot","fenced", "kitchen", "bedroom", "bath", "appli", "halfbath", "tom"))
 
-words<- zillow %>% unnest_tokens(word, USER_descr) %>% anti_join(stop_words) %>% filter(!word %in% remove_list)%>% filter(!grepl('[0-9]', word))%>%filter(!cluster4 == 0)%>%st_drop_geometry(.)
+## Repeats each row for each work in USER_descr
+words <- zillow %>% 
+  unnest_tokens(word, USER_descr) %>% 
+  anti_join(stop_words) %>%  # remove stop words
+  filter(!word %in% remove_list)%>% # remove custom words
+  filter(!grepl('[0-9]', word))%>% # remove numbers
+  filter(!cluster4 == 0)%>% # remove out of cluster
+  st_drop_geometry(.) # should be done first, oh well
 
 #Remove words that only occurs less than 5 times
 words$nn <- ave(words$word,words$word, FUN=length)
@@ -233,6 +299,11 @@ words$nn <- as.numeric(words$nn)
 words<- words[ -which( words$nn <5), ]
 
 ```
+
+
+# GROUP WORK
+Find something interesting about word freqiency and one of the demographic/economic variables
+
 
 Now we'll start the analysis, but you'll probably find yourself going back and back and back to the cleaning stage!
 
@@ -260,6 +331,8 @@ words_by_neighborhood %>%
 ```
 
 I spent a significant amount of my life trying to put those graphs in order (just so you don't think this code chunk pops out of my head on the first try)
+
+## Assigning Label names to clusters here
 
 ```{r ordered graphs}
 cluster.lab <- c('1'= "Increasing Minority Homebuyers", '2'="Wealthy White", '3'= "Very Wealthy and White", '4'= "Gentrifying")
@@ -316,6 +389,8 @@ cluster_tf_idf %>%
 
 Another way to do this is with the now-familiar logistic regression. To simply things and help aid in the interpretation of the results, we turn this into a binomial regression where we'll compare one class to all of the rest. We first have to re-code our neighborhood class variable into a binomial one (1/0).
 
+## One class vs al others - Multinomial
+
 We then split into a testing and training dataset
 ```{r setup for logistic regression}
 
@@ -348,6 +423,8 @@ data_split<- initial_split(data_split)
 train_data <- training(data_split)
 test_data <- testing(data_split)
 
+### What is a sparse Matrix??
+
 #transform training data from tidy data structure to a sparse matrix
 sparse_words <- words %>%
   count(USER_ID, word) %>%
@@ -375,7 +452,10 @@ We ended up adding to those words with a full list of neighborhood names. I adde
 ```{r run logistic regression}
 #Run model on training data (slow) for clusterX
 
-is_cluster <- data_joined$cluster2 == 1 #<--- change clusterX to whatever cluster you want to plot
+## CLuster2??
+is_cluster <- data_joined$cluster1 == 1 #<--- change clusterX to whatever cluster you want to plot
+
+### WHAT IS GOING ON HERE!???
 
 model <- cv.glmnet(sparse_words, is_cluster,
                    family = "binomial", intercept = TRUE
@@ -400,10 +480,15 @@ coefs %>%
     title = "15 largest/smallest coefficients")
 ```
 
+## Interpret plot
 
+### GROUP WORK (optional)
+Try this for different clusters, how is the same or different
 
+## What is also needed when we do logistic regression to get a class?
 
 Now we can see how well we can predict the type of neighborhood a listing belongs to based on the coefficients of the words contained in the listing. Remember, since we converted it to a binary problem, we are testing one class at a time. In other words, is the listing in class 1? Yes or no, given what we've learned. We follow with our favorite confusion matrix. In this case, we are much better at predicting it DOESN'T belong to a certain class than identify the true class. Many more True Negatives than True Positives. We could also fiddle around with the 0.8 threshold to see how that alters the prediction results.
+
 
 ```{r prediction}
 #Prediction 
@@ -442,4 +527,19 @@ comment_classes %>%
 #precision = TP / TP + FP
 #recall = TP / TP + FN
 ```
+### Cluster1 vs Cluster 2???
+
+### What does a FP, FN mean here
+## GROUP WORK
+Try different thresholds and see what you get
+
+```{r}
+testProbs <- 
+  comment_classes %>%
+  mutate(predOutcome  = as.factor(ifelse(comment_classes$probability > 0.4 , 1, 0)))
+caret::confusionMatrix(testProbs$predOutcome, testProbs$cluster1)
+```
+
+
+
 
