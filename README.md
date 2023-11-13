@@ -36,3 +36,5 @@ Additional content is available in the [R FAQ for Planners](https://mafichman.gi
     -   advertising_clean.csv
 -   `Week_8` - Time and Space panel modeling \$ bike share example
     -   Bike_Share_Time_Space_2021.Rmd
+-   `Week_9` - Text mining
+    -   TextAnalysis.Rmd
